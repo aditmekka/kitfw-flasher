@@ -1,0 +1,155 @@
+QMainWindow {
+    background-color: #0f172a;
+}
+
+QWidget {
+    color: #e2e8f0;
+    font-size: 11pt;
+    background: transparent;
+}
+
+/* ================================================= */
+/* Cards */
+/* ================================================= */
+
+QFrame#card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+}
+
+/* ================================================= */
+/* Title */
+/* ================================================= */
+
+QLabel#title {
+    font-size: 26pt;
+    font-weight: 700;
+}
+
+QLabel#subtitle {
+    color: #94a3b8;
+    font-size: 11pt;
+}
+
+QLabel#badge_ready {
+    background: #14532d;
+    color: #86efac;
+    border-radius: 10px;
+    padding: 4px 12px;
+    font-weight: bold;
+}
+
+QLabel#badge_flashing {
+    background: #164e63;
+    color: #67e8f9;
+    border-radius: 10px;
+    padding: 4px 12px;
+    font-weight: bold;
+}
+
+QLabel#badge_error {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border-radius: 10px;
+    padding: 4px 12px;
+    font-weight: bold;
+}
+
+QLabel#badge_success {
+    background: #14532d;
+    color: #86efac;
+    border-radius: 10px;
+    padding: 4px 12px;
+    font-weight: bold;
+}
+
+/* ================================================= */
+/* Buttons */
+/* ================================================= */
+
+QPushButton {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-weight: bold;
+}
+
+QPushButton#flashButton {
+    background-color: #0ea5e9;
+    color: white;
+}
+
+QPushButton#flashButton:hover {
+    background-color: #38bdf8;
+}
+
+QPushButton#stopButton {
+    background-color: #ef4444;
+    color: white;
+}
+
+QPushButton#stopButton:hover {
+    background-color: #f87171;
+}
+
+/* ================================================= */
+/* Inputs */
+/* ================================================= */
+
+QComboBox {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 6px;
+}
+
+/* ================================================= */
+/* Table */
+/* ================================================= */
+
+QTableWidget {
+    background-color: #0f172a;
+    border: none;
+    border-radius: 10px;
+    gridline-color: #334155;
+}
+
+QHeaderView::section {
+    background-color: #1e293b;
+    border: none;
+    padding: 8px;
+}
+
+/* ================================================= */
+/* Logs */
+/* ================================================= */
+
+QPlainTextEdit {
+    background-color: #020617;
+    border: 1px solid #334155;
+    border-radius: 12px;
+
+    font-family:
+        "Cascadia Code",
+        "Consolas",
+        monospace;
+
+    font-size: 10pt;
+}
+
+/* ================================================= */
+/* Progress */
+/* ================================================= */
+
+QProgressBar {
+    border: none;
+    border-radius: 8px;
+    background-color: #1e293b;
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: #0ea5e9;
+    border-radius: 8px;
+}
