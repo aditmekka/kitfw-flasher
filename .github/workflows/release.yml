@@ -34,7 +34,7 @@ jobs:
 
       - name: Rename Artifact
         run: |
-          move dist\main.exe dist\KitFW_Flasher_${{ github.ref_name }}.exe
+          move dist\KitFW_Flasher.exe dist\KitFW_Flasher_${{ github.ref_name }}.exe
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
