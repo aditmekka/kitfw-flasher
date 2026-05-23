@@ -40,4 +40,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/KitFW_Flasher.exe
+            dist/KitFW_Flasher_${{ github.ref_name }}.exe
