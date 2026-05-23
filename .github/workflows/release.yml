@@ -28,9 +28,20 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pyinstaller
+          pip install pyserial 
+
+      - name: Verify serial installation
+        run: |
+          python -c "import serial; print(f'serial version: {serial.__version__}')"
 
       - name: Build EXE
-        run: pyinstaller --onefile --windowed --icon assets/logo.ico --add-data "assets;assets" --name KitFW_Flasher main.py
+        run: |
+          pyinstaller --onefile --windowed --icon assets/logo.ico `
+          --add-data "assets;assets" `
+          --name KitFW_Flasher `
+          --hidden-import serial `
+          --hidden-import serial.tools.list_ports `
+          main.py
 
       - name: Rename Artifact
         run: |
