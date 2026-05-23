@@ -30,13 +30,7 @@ jobs:
           pip install pyinstaller
 
       - name: Build EXE
-        run: |
-          pyinstaller ^
-            --onefile ^
-            --windowed ^
-            --icon assets/logo.ico ^
-            --add-data "assets;assets" ^
-            main.py
+        run: pyinstaller --onefile --windowed --icon assets/logo.ico --add-data "assets;assets" --name KitFW_Flasher main.py
 
       - name: Rename Artifact
         run: |
