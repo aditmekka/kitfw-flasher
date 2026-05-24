@@ -116,7 +116,7 @@ class AboutDialog(QDialog):
             <br><br>
 
             Built and maintained by
-            <b>Adit Mekka</b>
+            <b>Adit Raditya Mekka</b>
 
             <br><br>
 
