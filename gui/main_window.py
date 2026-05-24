@@ -26,7 +26,9 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QFrame,
     QDialog,
-    QHeaderView
+    QHeaderView,
+    QGroupBox,
+    QFormLayout
 )
 
 from PySide6.QtGui import (
@@ -161,7 +163,7 @@ class MainWindow(QMainWindow):
 
         self.resize(
             1200,
-            850
+            900  # Increased height for AVR config
         )
 
         self.build_ui()
@@ -376,6 +378,34 @@ class MainWindow(QMainWindow):
             top_row
         )
 
+        # =============================================
+        # Device Configuration Card (shows AVR or ESP config)
+        # =============================================
+
+        self.config_card = Card()
+        self.config_card.setVisible(False)
+
+        config_title = QLabel(
+            "⚙️ Device Configuration"
+        )
+        config_title.setStyleSheet(
+            "font-weight:bold;"
+        )
+
+        self.config_info = QLabel()
+        self.config_info.setWordWrap(True)
+        self.config_info.setStyleSheet("""
+            font-family: monospace;
+            background-color: #2b2b2b;
+            padding: 8px;
+            border-radius: 4px;
+        """)
+
+        self.config_card.layout.addWidget(config_title)
+        self.config_card.layout.addWidget(self.config_info)
+
+        main_layout.addWidget(self.config_card)
+
         #
         # Contents Card
         #
@@ -512,8 +542,10 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(
             logs_card,
-            1
+            2
         )
+
+        self.logs.setMinimumHeight(200)
 
     # =====================================================
     # Status Badge
@@ -607,25 +639,53 @@ class MainWindow(QMainWindow):
                 self.manifest.name
             )
 
-            self.package_meta.setText(
-                (
-                    f"Version {self.manifest.version}\n"
-                    f"Target: {self.manifest.target.upper()}"
+            target_str = self.manifest.target.upper()
+            
+            config_text = ""
+            if self.manifest.avr:
+                config_text = (
+                    f"Type: AVR\n"
+                    f"MCU: {self.manifest.avr.mcu}\n"
+                    f"Programmer: {self.manifest.avr.programmer}\n"
+                    f"Baud Rates: {', '.join(map(str, self.manifest.avr.baud_rates))}"
                 )
+                target_str = f"AVR ({self.manifest.avr.mcu.upper()})"
+            elif self.manifest.esp:
+                chip = self.manifest.esp.get('chip', 'Unknown')
+                config_text = (
+                    f"Type: ESP\n"
+                    f"Chip: {chip}\n"
+                    f"Flash Mode: {self.manifest.esp.get('flash_mode', 'dio')}\n"
+                    f"Flash Size: {self.manifest.esp.get('flash_size', 'detect')}\n"
+                    f"Flash Freq: {self.manifest.esp.get('flash_freq', '40m')}"
+                )
+                target_str = chip.upper()
+
+            if config_text:
+                self.config_card.setVisible(True)
+                self.config_info.setText(config_text)
+            else:
+                self.config_card.setVisible(False)
+
+            self.package_meta.setText(
+                f"Version {self.manifest.version}\n"
+                f"Target: {target_str}"
             )
 
             self.populate_table()
 
-            self.flash_button.setEnabled(
-                True
-            )
+            self.flash_button.setEnabled(True)
 
             self.append_log(
                 f"\nLoaded package:\n{file_name}\n"
             )
 
-        except Exception as e:
+            if self.manifest.avr or self.manifest.esp:
+                self.resize(1200, 1000)  # Taller when config visible
+            else:
+                self.resize(1200, 900)   # Default size
 
+        except Exception as e:
             QMessageBox.critical(
                 self,
                 "Package Error",
@@ -717,25 +777,21 @@ class MainWindow(QMainWindow):
     def flash_firmware(self):
 
         if self.manifest is None:
-
             QMessageBox.warning(
                 self,
                 "No Package",
                 "Load a package first."
             )
-
             return
 
         port = self.port_combo.currentData()
 
         if not port:
-
             QMessageBox.warning(
                 self,
                 "No Port",
                 "Select a COM port."
             )
-
             return
 
         self.logs.clear()
@@ -743,11 +799,9 @@ class MainWindow(QMainWindow):
         self.append_log(
             "=====================================\n"
         )
-
         self.append_log(
             "KitFW Flash Session\n"
         )
-
         self.append_log(
             "=====================================\n\n"
         )
@@ -755,31 +809,57 @@ class MainWindow(QMainWindow):
         self.append_log(
             f"Target : {self.manifest.target}\n"
         )
+        
+        # Log AVR config if present
+        if self.manifest.avr:
+            self.append_log(
+                f"MCU        : {self.manifest.avr.mcu}\n"
+            )
+            self.append_log(
+                f"Programmer : {self.manifest.avr.programmer}\n"
+            )
+            self.append_log(
+                f"Baud Rates : {', '.join(map(str, self.manifest.avr.baud_rates))}\n"
+            )
+        
+        # Log ESP config if present
+        if self.manifest.esp:
+            self.append_log(
+                f"Chip       : {self.manifest.esp.get('chip', 'Unknown')}\n"
+            )
+            if 'flash_mode' in self.manifest.esp:
+                self.append_log(
+                    f"Flash Mode : {self.manifest.esp['flash_mode']}\n"
+                )
+            if 'flash_size' in self.manifest.esp:
+                self.append_log(
+                    f"Flash Size : {self.manifest.esp['flash_size']}\n"
+                )
+            if 'flash_freq' in self.manifest.esp:
+                self.append_log(
+                    f"Flash Freq : {self.manifest.esp['flash_freq']}\n"
+                )
 
         self.append_log(
             f"Port   : {port}\n\n"
         )
 
-        self.progress.setRange(
-            0,
-            0
-        )
+        self.progress.setRange(0, 0)
+        self.set_status("FLASHING")
+        self.flash_button.setEnabled(False)
+        self.stop_button.setEnabled(True)
 
-        self.set_status(
-            "FLASHING"
-        )
-
-        self.flash_button.setEnabled(
-            False
-        )
-
-        self.stop_button.setEnabled(
-            True
-        )
-
-        self.flasher = create_flasher(
-            self.manifest.target
-        )
+        # Create the appropriate flasher based on target
+        target = self.manifest.target
+        
+        # For ESP targets, also pass the chip information
+        if target == "espressif" and self.manifest.esp:
+            chip = self.manifest.esp.get("chip", "esp32")
+            self.append_log(f"Using chip: {chip}\n\n")
+            self.flasher = create_flasher(target, chip=chip)
+        else:
+            # For legacy targets (esp32, esp8266, avr) or if no ESP config
+            self.flasher = create_flasher(target)
 
         self.worker = FlashWorker(
             self.flasher,
@@ -788,51 +868,22 @@ class MainWindow(QMainWindow):
             self.manifest
         )
 
-        self.worker.log_signal.connect(
-            self.append_log
-        )
-
-        self.worker.finished_signal.connect(
-            self.flash_finished
-        )
-
-        self.worker.error_signal.connect(
-            self.flash_error
-        )
-
+        self.worker.log_signal.connect(self.append_log)
+        self.worker.finished_signal.connect(self.flash_finished)
+        self.worker.error_signal.connect(self.flash_error)
         self.worker.start()
 
     # =====================================================
-    # Flash Success
+    # Flash Success (FIXED: was at wrong indentation level)
     # =====================================================
 
     def flash_finished(self):
-
-        self.progress.setRange(
-            0,
-            100
-        )
-
-        self.progress.setValue(
-            100
-        )
-
-        self.flash_button.setEnabled(
-            True
-        )
-
-        self.stop_button.setEnabled(
-            False
-        )
-
-        self.set_status(
-            "SUCCESS"
-        )
-
-        self.append_log(
-            "\n\nFlash completed successfully.\n"
-        )
-
+        self.progress.setRange(0, 100)
+        self.progress.setValue(100)
+        self.flash_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+        self.set_status("SUCCESS")
+        self.append_log("\n\nFlash completed successfully.\n")
         QMessageBox.information(
             self,
             "Success",
@@ -844,32 +895,12 @@ class MainWindow(QMainWindow):
     # =====================================================
 
     def flash_error(self, error):
-
-        self.progress.setRange(
-            0,
-            100
-        )
-
-        self.progress.setValue(
-            0
-        )
-
-        self.flash_button.setEnabled(
-            True
-        )
-
-        self.stop_button.setEnabled(
-            False
-        )
-
-        self.set_status(
-            "ERROR"
-        )
-
-        self.append_log(
-            f"\n\nERROR:\n{error}\n"
-        )
-
+        self.progress.setRange(0, 100)
+        self.progress.setValue(0)
+        self.flash_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+        self.set_status("ERROR")
+        self.append_log(f"\n\nERROR:\n{error}\n")
         QMessageBox.critical(
             self,
             "Flash Failed",
@@ -881,40 +912,15 @@ class MainWindow(QMainWindow):
     # =====================================================
 
     def stop_flash(self):
-
         if hasattr(self, "flasher"):
-
-            self.append_log(
-                "\n\nStopping flash...\n"
-            )
-
+            self.append_log("\n\nStopping flash...\n")
             try:
-
                 self.flasher.stop()
-
             except Exception as e:
+                self.append_log(f"\nStop error:\n{e}\n")
 
-                self.append_log(
-                    f"\nStop error:\n{e}\n"
-                )
-
-        self.flash_button.setEnabled(
-            True
-        )
-
-        self.stop_button.setEnabled(
-            False
-        )
-
-        self.progress.setRange(
-            0,
-            100
-        )
-
-        self.progress.setValue(
-            0
-        )
-
-        self.set_status(
-            "READY"
-        )
+        self.flash_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+        self.progress.setRange(0, 100)
+        self.progress.setValue(0)
+        self.set_status("READY")

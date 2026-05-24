@@ -4,7 +4,6 @@ import time
 
 from flashers.base import BaseFlasher
 
-
 class ESPFlasher(BaseFlasher):
 
     def __init__(self, chip):
@@ -18,7 +17,7 @@ class ESPFlasher(BaseFlasher):
             self.chip,
             "--port",
             port,
-            "write_flash"
+            "write-flash"
         ]
 
         for item in manifest.flash:

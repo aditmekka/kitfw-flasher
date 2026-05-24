@@ -6,20 +6,18 @@ from flashers.base import BaseFlasher
 
 class AVRFlasher(BaseFlasher):
 
-    MCU = "atmega328p"
-    PROGRAMMER = "arduino"
-
     def __init__(self, avrdude_path: str, avrdude_conf: str):
         self.avrdude_path = avrdude_path
         self.avrdude_conf = avrdude_conf
         self.process = None
 
-    def build_command(self, port: str, baud: int, firmware_path: Path) -> list[str]:
+    def build_command(self, port: str, baud: int, firmware_path: Path, 
+                      mcu: str, programmer: str) -> list[str]:
         return [
             self.avrdude_path,
             "-C", self.avrdude_conf,
-            f"-p{self.MCU}",
-            f"-c{self.PROGRAMMER}",
+            f"-p{mcu}",
+            f"-c{programmer}",
             f"-P{port}",
             f"-b{baud}",
             "-D",
@@ -56,22 +54,32 @@ class AVRFlasher(BaseFlasher):
     def flash(self, port: str, package_dir, manifest, log_callback=None):
         if not manifest.flash:
             raise RuntimeError("Manifest contains no firmware entries")
+        
+        # Check if AVR config exists in manifest
+        if not manifest.avr:
+            raise RuntimeError("Manifest missing AVR configuration (mcu, programmer, baud_rates)")
 
+        # Use the first flash entry (for AVR there's usually just one)
         firmware_path = Path(package_dir) / manifest.flash[0].file
 
         if not firmware_path.exists():
             raise FileNotFoundError(f"Firmware not found: {firmware_path}")
 
-        baud_rates = [115200, 57600]  # Nano new bootloader, Nano old bootloader
+        # Use baud rates from manifest
+        baud_rates = manifest.avr.baud_rates if manifest.avr.baud_rates else [115200, 57600]
+        
+        # Use MCU and programmer from manifest
+        mcu = manifest.avr.mcu
+        programmer = manifest.avr.programmer
 
         for baud in baud_rates:
-            status_msg = f"Trying upload at {baud} baud...\n"
+            status_msg = f"Trying upload at {baud} baud (MCU: {mcu}, Programmer: {programmer})...\n"
             if log_callback:
                 log_callback(status_msg)
             else:
                 print(status_msg, end="")
 
-            cmd = self.build_command(port, baud, firmware_path)
+            cmd = self.build_command(port, baud, firmware_path, mcu, programmer)
             success = self._run_command(cmd, log_callback)
 
             if success:
@@ -88,7 +96,7 @@ class AVRFlasher(BaseFlasher):
             else:
                 print(fail_msg, end="")
 
-        raise RuntimeError("Upload failed using all baud rates")
+        raise RuntimeError(f"Upload failed using all baud rates: {baud_rates}")
 
     def stop(self):
         if self.process and self.process.poll() is None:
