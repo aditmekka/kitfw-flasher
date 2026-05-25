@@ -37,6 +37,7 @@ jobs:
       - name: Build EXE
         run: |
           pyinstaller --onefile --windowed --icon assets/logo.ico `
+          --add-data "tools;tools" `
           --add-data "assets;assets" `
           --name KitFW_Flasher `
           --hidden-import serial `

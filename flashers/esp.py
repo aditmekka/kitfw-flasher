@@ -1,6 +1,7 @@
 from pathlib import Path
 import subprocess
 import time
+import sys
 
 from flashers.base import BaseFlasher
 
@@ -8,17 +9,32 @@ class ESPFlasher(BaseFlasher):
 
     def __init__(self, chip):
         self.chip = chip
-        self.process = None  # Store process for cleanup
+        self.process = None
+        
+        if hasattr(sys, '_MEIPASS'):
+            base_path = Path(sys._MEIPASS)
+        else:
+            base_path = Path(__file__).parent.parent
+        
+        self.esptool_path = str(base_path / "tools" / "esptool.exe")
 
     def build_command(self, port, package_dir, manifest):
         cmd = [
-            "tools/esptool.exe",
+            self.esptool_path,
             "--chip",
             self.chip,
             "--port",
             port,
             "write-flash"
         ]
+
+        if hasattr(manifest, 'esp') and manifest.esp:
+            if 'flash_mode' in manifest.esp:
+                cmd.extend(["--flash_mode", manifest.esp['flash_mode']])
+            if 'flash_size' in manifest.esp:
+                cmd.extend(["--flash_size", manifest.esp['flash_size']])
+            if 'flash_freq' in manifest.esp:
+                cmd.extend(["--flash_freq", manifest.esp['flash_freq']])
 
         for item in manifest.flash:
             firmware = Path(package_dir) / item.file
@@ -28,6 +44,11 @@ class ESPFlasher(BaseFlasher):
 
     def flash(self, port, package_dir, manifest, log_callback=None):
         cmd = self.build_command(port, package_dir, manifest)
+        
+        # Debug: Log the esptool path
+        if log_callback:
+            log_callback(f"Using esptool: {self.esptool_path}\n")
+            log_callback(f"Command: {' '.join(cmd)}\n\n")
         
         self.process = subprocess.Popen(
             cmd,
