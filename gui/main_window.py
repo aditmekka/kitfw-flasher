@@ -28,13 +28,15 @@ from PySide6.QtWidgets import (
     QDialog,
     QHeaderView,
     QGroupBox,
-    QFormLayout
+    QFormLayout,
+    QSplitter  # Add splitter for resizable sections
 )
 
 from PySide6.QtGui import (
     QTextCursor,
     QAction,
-    QIcon
+    QIcon,
+    QFont  # Add font handling
 )
 
 from PySide6.QtCore import Qt
@@ -62,10 +64,10 @@ class Card(QFrame):
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(
-            16,
-            16,
-            16,
-            16
+            12,  # Reduced from 16
+            12,  # Reduced from 16
+            12,  # Reduced from 16
+            12   # Reduced from 16
         )
 
 
@@ -96,7 +98,7 @@ class AboutDialog(QDialog):
 
         title.setStyleSheet(
             """
-            font-size: 22pt;
+            font-size: 18pt;  # Reduced from 22pt
             font-weight: bold;
             """
         )
@@ -161,10 +163,14 @@ class MainWindow(QMainWindow):
             "KitFW Flasher"
         )
 
+        # Optimized for 1366x768 displays
         self.resize(
-            1200,
-            900  # Increased height for AVR config
+            1100,  # Slightly narrower
+            700    # Shorter for HD display
         )
+        
+        # Set minimum size to prevent crushing
+        self.setMinimumSize(900, 600)
 
         self.build_ui()
 
@@ -194,7 +200,8 @@ class MainWindow(QMainWindow):
             central
         )
 
-        main_layout.setSpacing(16)
+        main_layout.setSpacing(12)  # Reduced from 16
+        main_layout.setContentsMargins(10, 10, 10, 10)  # Add margins
 
         #
         # Menu
@@ -236,6 +243,11 @@ class MainWindow(QMainWindow):
         title.setObjectName(
             "title"
         )
+        
+        # Set smaller font for HD display
+        title_font = QFont()
+        title_font.setPointSize(16)
+        title.setFont(title_font)
 
         subtitle = QLabel(
             "Install firmware packages in one click"
@@ -244,6 +256,10 @@ class MainWindow(QMainWindow):
         subtitle.setObjectName(
             "subtitle"
         )
+        
+        subtitle_font = QFont()
+        subtitle_font.setPointSize(9)
+        subtitle.setFont(subtitle_font)
 
         title_column.addWidget(
             title
@@ -270,10 +286,11 @@ class MainWindow(QMainWindow):
         )
 
         #
-        # Top Cards
+        # Top Cards - Use QHBoxLayout with proper stretching
         #
 
         top_row = QHBoxLayout()
+        top_row.setSpacing(12)
 
         #
         # Package Card
@@ -286,12 +303,15 @@ class MainWindow(QMainWindow):
         )
 
         package_title.setStyleSheet(
-            "font-weight:bold;"
+            "font-weight:bold; font-size:11px;"
         )
 
         self.open_button = QPushButton(
             "Open .kitfw Package"
         )
+        
+        # Smaller button
+        self.open_button.setMaximumHeight(30)
 
         self.open_button.clicked.connect(
             self.open_package
@@ -303,7 +323,7 @@ class MainWindow(QMainWindow):
 
         self.package_name.setStyleSheet(
             """
-            font-size:16pt;
+            font-size:12pt;
             font-weight:bold;
             """
         )
@@ -311,6 +331,9 @@ class MainWindow(QMainWindow):
         self.package_meta = QLabel(
             "Open a package to begin"
         )
+        
+        self.package_meta.setWordWrap(True)
+        self.package_meta.setStyleSheet("font-size:10px;")
 
         package_card.layout.addWidget(
             package_title
@@ -339,14 +362,16 @@ class MainWindow(QMainWindow):
         )
 
         device_title.setStyleSheet(
-            "font-weight:bold;"
+            "font-weight:bold; font-size:11px;"
         )
 
         self.port_combo = QComboBox()
+        self.port_combo.setMaximumHeight(30)
 
         refresh_btn = QPushButton(
             "Refresh"
         )
+        refresh_btn.setMaximumHeight(30)
 
         refresh_btn.clicked.connect(
             self.refresh_ports
@@ -384,12 +409,13 @@ class MainWindow(QMainWindow):
 
         self.config_card = Card()
         self.config_card.setVisible(False)
+        self.config_card.setMaximumHeight(150)  # Limit height
 
         config_title = QLabel(
             "⚙️ Device Configuration"
         )
         config_title.setStyleSheet(
-            "font-weight:bold;"
+            "font-weight:bold; font-size:11px;"
         )
 
         self.config_info = QLabel()
@@ -397,8 +423,9 @@ class MainWindow(QMainWindow):
         self.config_info.setStyleSheet("""
             font-family: monospace;
             background-color: #2b2b2b;
-            padding: 8px;
+            padding: 6px;
             border-radius: 4px;
+            font-size: 10px;
         """)
 
         self.config_card.layout.addWidget(config_title)
@@ -407,9 +434,12 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.config_card)
 
         #
-        # Contents Card
+        # Contents and Logs - Use Splitter for resizable sections
         #
 
+        splitter = QSplitter(Qt.Vertical)
+        
+        # Contents Card
         contents_card = Card()
 
         contents_title = QLabel(
@@ -417,7 +447,7 @@ class MainWindow(QMainWindow):
         )
 
         contents_title.setStyleSheet(
-            "font-weight:bold;"
+            "font-weight:bold; font-size:11px;"
         )
 
         self.contents_table = QTableWidget()
@@ -437,6 +467,9 @@ class MainWindow(QMainWindow):
             1,
             QHeaderView.ResizeMode.Stretch
         )
+        
+        # Smaller row height
+        self.contents_table.verticalHeader().setDefaultSectionSize(25)
 
         contents_card.layout.addWidget(
             contents_title
@@ -446,15 +479,50 @@ class MainWindow(QMainWindow):
             self.contents_table
         )
 
-        main_layout.addWidget(
-            contents_card
+        # Logs Card
+        logs_card = Card()
+
+        logs_title = QLabel(
+            "📜 Live Flash Log"
         )
 
+        logs_title.setStyleSheet(
+            "font-weight:bold; font-size:11px;"
+        )
+
+        self.logs = QPlainTextEdit()
+
+        self.logs.setReadOnly(
+            True
+        )
+        
+        # Smaller font for logs
+        log_font = QFont("Consolas", 9)
+        self.logs.setFont(log_font)
+
+        logs_card.layout.addWidget(
+            logs_title
+        )
+
+        logs_card.layout.addWidget(
+            self.logs
+        )
+
+        # Add both to splitter
+        splitter.addWidget(contents_card)
+        splitter.addWidget(logs_card)
+        
+        # Set initial sizes (40% contents, 60% logs)
+        splitter.setSizes([250, 350])
+
+        main_layout.addWidget(splitter)
+
         #
-        # Buttons
+        # Buttons - Compact row
         #
 
         button_row = QHBoxLayout()
+        button_row.setSpacing(10)
 
         self.flash_button = QPushButton(
             "⚡ FLASH DEVICE"
@@ -463,6 +531,9 @@ class MainWindow(QMainWindow):
         self.flash_button.setObjectName(
             "flashButton"
         )
+        
+        self.flash_button.setMinimumHeight(35)
+        self.flash_button.setMaximumHeight(35)
 
         self.flash_button.setEnabled(
             False
@@ -479,6 +550,9 @@ class MainWindow(QMainWindow):
         self.stop_button.setObjectName(
             "stopButton"
         )
+        
+        self.stop_button.setMinimumHeight(35)
+        self.stop_button.setMaximumHeight(35)
 
         self.stop_button.setEnabled(
             False
@@ -501,51 +575,17 @@ class MainWindow(QMainWindow):
         )
 
         #
-        # Progress
+        # Progress - Thinner bar
         #
 
         self.progress = QProgressBar()
 
         self.progress.setValue(0)
+        self.progress.setMaximumHeight(20)
 
         main_layout.addWidget(
             self.progress
         )
-
-        #
-        # Logs Card
-        #
-
-        logs_card = Card()
-
-        logs_title = QLabel(
-            "📜 Live Flash Log"
-        )
-
-        logs_title.setStyleSheet(
-            "font-weight:bold;"
-        )
-
-        self.logs = QPlainTextEdit()
-
-        self.logs.setReadOnly(
-            True
-        )
-
-        logs_card.layout.addWidget(
-            logs_title
-        )
-
-        logs_card.layout.addWidget(
-            self.logs
-        )
-
-        main_layout.addWidget(
-            logs_card,
-            2
-        )
-
-        self.logs.setMinimumHeight(200)
 
     # =====================================================
     # Status Badge
@@ -680,10 +720,8 @@ class MainWindow(QMainWindow):
                 f"\nLoaded package:\n{file_name}\n"
             )
 
-            if self.manifest.avr or self.manifest.esp:
-                self.resize(1200, 1000)  # Taller when config visible
-            else:
-                self.resize(1200, 900)   # Default size
+            # Don't resize - let the splitter handle it
+            # The window size stays consistent
 
         except Exception as e:
             QMessageBox.critical(
@@ -874,7 +912,7 @@ class MainWindow(QMainWindow):
         self.worker.start()
 
     # =====================================================
-    # Flash Success (FIXED: was at wrong indentation level)
+    # Flash Success
     # =====================================================
 
     def flash_finished(self):

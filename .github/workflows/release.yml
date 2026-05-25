@@ -22,27 +22,32 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"  # Use 3.11 for better compatibility
+
+      - name: Install UPX
+        run: |
+          curl -L -o upx.zip https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-win64.zip
+          Expand-Archive -Path upx.zip -DestinationPath .
+          Move-Item -Path .\upx-4.2.4-win64\upx.exe -Destination .\upx.exe
+          echo "UPX_PATH=$env:GITHUB_WORKSPACE\upx.exe" >> $env:GITHUB_ENV
 
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install pyinstaller
-          pip install pyserial 
+          pip install pyserial
+          pip install pyside6  # or pyside6-essentials for smaller size
 
-      - name: Verify serial installation
+      - name: Verify installations
         run: |
           python -c "import serial; print(f'serial version: {serial.__version__}')"
+          python -c "import PySide6; print(f'PySide6 version: {PySide6.__version__}')"
 
-      - name: Build EXE
+      - name: Build EXE with PyInstaller using .spec
         run: |
-          pyinstaller --onefile --windowed --icon assets/logo.ico `
-          --add-data "tools;tools" `
-          --add-data "assets;assets" `
-          --name KitFW_Flasher `
-          --hidden-import serial `
-          --hidden-import serial.tools.list_ports `
-          main.py
+          python -m PyInstaller --clean --noconfirm `
+            --upx-dir "$env:GITHUB_WORKSPACE" `
+            KitFW_Flasher.spec
 
       - name: Rename Artifact
         run: |

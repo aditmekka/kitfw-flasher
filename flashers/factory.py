@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import shutil
 from flashers.esp import ESPFlasher
 from flashers.avr import AVRFlasher
 
@@ -36,27 +37,44 @@ def create_flasher(target, chip=None):
     
     # Handle AVR target
     elif target == "avr":
-        avrdude_path = str(base_path / "tools" / "avrdude.exe")
-        avrdude_conf = str(base_path / "tools" / "avrdude.conf")
+        # Try multiple locations for avrdude
+        possible_paths = [
+            base_path / "tools" / "avrdude" / "avrdude.exe",
+            base_path / "tools" / "avrdude.exe",
+            Path("C:/Program Files/avrdude/avrdude.exe"),
+            Path("C:/avrdude/avrdude.exe"),
+        ]
         
-        # Check if files exist, try system PATH as fallback
-        if not Path(avrdude_path).exists():
+        avrdude_path = None
+        for path in possible_paths:
+            if path.exists():
+                avrdude_path = str(path)
+                break
+        
+        if not avrdude_path:
+            # Try system PATH
             import shutil
-            system_avrdude = shutil.which("avrdude")
+            system_avrdude = shutil.which("avrdude") or shutil.which("avrdude.exe")
             if system_avrdude:
                 avrdude_path = system_avrdude
-                # Try to find avrdude.conf in standard locations
-                possible_conf_paths = [
-                    base_path / "tools" / "avrdude.conf",
-                    Path("C:/Program Files/avrdude/avrdude.conf"),
-                    Path("C:/avrdude/avrdude.conf")
-                ]
-                for conf_path in possible_conf_paths:
-                    if conf_path.exists():
-                        avrdude_conf = str(conf_path)
-                        break
+        
+        if not avrdude_path:
+            raise FileNotFoundError(f"avrdude.exe not found. Tried: {possible_paths}")
+        
+        # Find avrdude.conf in same directory as avrdude.exe
+        avrdude_dir = Path(avrdude_path).parent
+        avrdude_conf = str(avrdude_dir / "avrdude.conf")
+        
+        if not Path(avrdude_conf).exists():
+            # Try common locations
+            fallback_confs = [
+                base_path / "tools" / "avrdude" / "avrdude.conf",
+                base_path / "tools" / "avrdude.conf",
+                Path("C:/Program Files/avrdude/avrdude.conf"),
+            ]
+            for conf in fallback_confs:
+                if conf.exists():
+                    avrdude_conf = str(conf)
+                    break
         
         return AVRFlasher(avrdude_path, avrdude_conf)
-    
-    else:
-        raise ValueError(f"Unsupported target: {target}")
